@@ -13,12 +13,14 @@ class FirebaseManager {
     
     let auth: Auth
     let storage: Storage
+    let firestore: Firestore
     
     static let shared = FirebaseManager()
     
     init() {
         storage = Storage.storage()
         self.auth = Auth.auth()
+        self.firestore = Firestore.firestore()
         }
 }
 
@@ -171,9 +173,26 @@ struct LoginView: View {
                 }
                 
                 self.loginStatusMessage = "Succesfully stored image with url: \(url?.absoluteString ?? "")"
-                print(url?.absoluteString)
+                print(url?.absoluteString ?? "")
+                
+                guard let url = url else { return }
+                storeUserInformation(imageProfileUrl: url)
             }
         }
+    }
+    
+    private func storeUserInformation(imageProfileUrl: URL) {
+        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        let userData = ["email": self.email, "uid": uid, "profileImageUrl": imageProfileUrl.absoluteString]
+        FirebaseManager.shared.firestore.collection("users")
+            .document(uid).setData(userData) { err in
+                if let err = err {
+                    print(err)
+                    self.loginStatusMessage = "\(err)"
+                    return
+                }
+                print("Success")
+            }
     }
 }
 
