@@ -9,20 +9,6 @@ import SwiftUI
 import Firebase
 import FirebaseStorage
 
-class FirebaseManager {
-    
-    let auth: Auth
-    let storage: Storage
-    let firestore: Firestore
-    
-    static let shared = FirebaseManager()
-    
-    init() {
-        storage = Storage.storage()
-        self.auth = Auth.auth()
-        self.firestore = Firestore.firestore()
-        }
-}
 
 
 struct LoginView: View {
