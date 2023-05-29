@@ -8,9 +8,6 @@
 import SwiftUI
 import SDWebImageSwiftUI
 
-struct ChatUser {
-    let uid, email, profileImageUrl: String
-}
 
 class MainMessagesViewModel: ObservableObject {
     
@@ -18,10 +15,16 @@ class MainMessagesViewModel: ObservableObject {
     @Published var chatUser: ChatUser?
     
     init() {
+        DispatchQueue.main.async {
+            self.isUserCurrentlyLoggedOut =
+            FirebaseManager.shared.auth.currentUser?.uid == nil
+        }
+        
         fetchCurrentUser()
     }
     
-    private func fetchCurrentUser() {
+     func fetchCurrentUser() {
+        
         guard let uid = FirebaseManager.shared.auth.currentUser?.uid
         else {
             self.errorMessage = "Could not find firebase uid"
@@ -36,21 +39,19 @@ class MainMessagesViewModel: ObservableObject {
                 return
             }
             
-         //   self.errorMessage = "123"
-            
             guard let data = snapshot?.data() else {
                 self.errorMessage = "No data found"
                 return
                 
             }
-         //   self.errorMessage = "Data: \(data.description)"
-            let uid = data["uid"] as? String ?? ""
-            let email = data["email"] as? String ?? ""
-            let profileImageUrl = data["profileImageUrl"] as? String ?? ""
-            self.chatUser = ChatUser(uid: uid, email: email, profileImageUrl: profileImageUrl)
-            
-      //      self.errorMessage = chatUser.profileImageUrl
+            self.chatUser = .init(data: data)
         }
+    }
+    @Published var isUserCurrentlyLoggedOut = false
+    
+    func handleSignOut() {
+        isUserCurrentlyLoggedOut.toggle()
+        try? FirebaseManager.shared.auth.signOut()
     }
 }
 
@@ -66,8 +67,6 @@ struct MainMessagesView: View {
         NavigationView{
             
             VStack{
-  //              Text("User: \(vm.chatUser?.uid ?? "")")
-                
                 
                 customNavBar
                 messagesView
@@ -122,10 +121,16 @@ struct MainMessagesView: View {
             .init(title: Text("Settings"), message: Text("What do you want to do?"), buttons: [
                 .destructive(Text("Sign Out"), action: {
                     print("handle sign out")
+                    vm.handleSignOut()
                 }),
-//                .default(Text("DEFAULT BUTTON")),
                 .cancel()
             ])
+        }
+        .fullScreenCover(isPresented: $vm.isUserCurrentlyLoggedOut, onDismiss: nil) {
+            LoginView(didCompleteLoginProcess:  {
+                self.vm.isUserCurrentlyLoggedOut = false
+                self.vm.fetchCurrentUser()
+            })
         }
     }
     
